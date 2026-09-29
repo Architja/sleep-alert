@@ -19,21 +19,51 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabRole>('driver');
   const [isAsleep, setIsAsleep] = useState(false);
   const [isActive, setIsActive] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  useEffect(() => {
-    // A loud, wake-up alarm sound
-    audioRef.current = new Audio('https://cdn.freesound.org/previews/415/415209_5121236-lq.mp3');
-    audioRef.current.loop = true;
-  }, []);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
 
   useEffect(() => {
     if (isAsleep) {
-      audioRef.current?.play().catch(e => console.error("Audio play blocked", e));
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      const ctx = audioCtxRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      
+      const osc = ctx.createOscillator();
+      const gainNode = ctx.createGain();
+      
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.setValueAtTime(1200, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(800, ctx.currentTime + 0.2);
+      
+      gainNode.gain.setValueAtTime(0, ctx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05);
+      
+      // Pulsing effect
+      const lfo = ctx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 5; // 5Hz pulse
+      
+      const lfoGain = ctx.createGain();
+      lfoGain.gain.value = 1;
+      lfo.connect(lfoGain.gain);
+      lfoGain.connect(gainNode.gain);
+      lfo.start();
+      
+      osc.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      osc.start();
+      
+      oscillatorRef.current = osc;
     } else {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+      if (oscillatorRef.current) {
+        oscillatorRef.current.stop();
+        oscillatorRef.current.disconnect();
+        oscillatorRef.current = null;
       }
     }
   }, [isAsleep]);
@@ -156,18 +186,8 @@ function DashboardContent({ mode, isAsleep, onSleepDetected, isActive, onActiveC
         <MetricCard title="Focus Score" value={!isActive ? "N/A" : isAsleep ? "12%" : "89%"} trend={!isActive ? "" : isAsleep ? "-77%" : "+12%"} status={!isActive ? "normal" : isAsleep ? "critical" : "excellent"} />
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="glass-panel p-6 rounded-2xl w-full">
         <SleepDetector onSleepDetected={onSleepDetected} isActive={isActive} onActiveChange={onActiveChange} />
-        
-        <div className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center min-h-[300px]">
-          <span className="text-holo-white/40 font-mono text-sm tracking-widest uppercase mb-4">[{mode} Telemetry Graph Placeholder]</span>
-          <div className="w-full h-32 flex items-end justify-between px-4 opacity-50">
-             {/* Fake graph bars */}
-             {[40, 70, 45, 90, 65, 30, 80, 50].map((h, i) => (
-               <div key={i} className={`w-1/12 bg-gradient-to-t from-transparent to-cyan-glow ${isAsleep ? 'to-alert-red' : ''} rounded-t`} style={{ height: `${h}%` }}></div>
-             ))}
-          </div>
-        </div>
       </div>
     </div>
   );

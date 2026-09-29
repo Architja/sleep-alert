@@ -37,8 +37,8 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
   const requestRef = useRef<number>(0);
   const lastVideoTimeRef = useRef(-1);
   const sleepFramesRef = useRef(0);
-  const EAR_THRESHOLD = 0.2; // Adjust if needed
-  const SLEEP_FRAMES_THRESHOLD = 20; // Frames before triggering alarm (approx 1 second)
+  const EAR_THRESHOLD = 0.22; // More sensitive
+  const SLEEP_FRAMES_THRESHOLD = 15; // Frames before triggering alarm (approx 0.5s)
 
   useEffect(() => {
     async function initModel() {
