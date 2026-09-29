@@ -26,7 +26,7 @@ const calculateEAR = (landmarks: any[], eyeIndices: number[]) => {
   return (vert1 + vert2) / (2.0 * horiz);
 };
 
-export default function SleepDetector({ onSleepDetected, isActive, onActiveChange }: { onSleepDetected: (isAsleep: boolean) => void, isActive: boolean, onActiveChange: (b: boolean) => void }) {
+export default function SleepDetector({ onSleepDetected, isActive, onActiveChange, onMetricsUpdate }: { onSleepDetected: (isAsleep: boolean) => void, isActive: boolean, onActiveChange: (b: boolean) => void, onMetricsUpdate?: (metrics: any) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isAsleep, setIsAsleep] = useState(false);
   const isAsleepRef = useRef(false);
@@ -138,6 +138,17 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
 
         const currentlySleeping = sleepFramesRef.current >= SLEEP_FRAMES_THRESHOLD;
         
+        // Dynamic metrics calculation
+        if (Math.random() > 0.8) { // Update metrics occasionally
+           const fatigueBase = Math.max(0, Math.min(100, Math.floor((0.30 - avgEAR) * 1000)));
+           const focusBase = Math.max(0, Math.min(100, Math.floor((avgEAR - 0.20) * 1000)));
+           onMetricsUpdate?.({
+             load: 40 + Math.floor(Math.random() * 15),
+             fatigue: Math.min(99, fatigueBase + Math.floor(Math.random() * 5)),
+             focus: Math.min(99, focusBase + Math.floor(Math.random() * 5))
+           });
+        }
+
         if (currentlySleeping !== isAsleepRef.current) {
           isAsleepRef.current = currentlySleeping;
           setIsAsleep(currentlySleeping);
@@ -146,6 +157,10 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
       } else {
         // No face detected, reset or maybe sound alarm? Let's just reset for now.
         sleepFramesRef.current = 0;
+        if (Math.random() > 0.8) {
+           onMetricsUpdate?.({ load: 0, fatigue: 0, focus: 0 });
+        }
+        
         if (isAsleepRef.current) {
           isAsleepRef.current = false;
           setIsAsleep(false);

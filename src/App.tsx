@@ -168,6 +168,8 @@ export default function App() {
 }
 
 function DashboardContent({ mode, isAsleep, onSleepDetected, isActive, onActiveChange }: { mode: string, isAsleep: boolean, onSleepDetected: (b: boolean) => void, isActive: boolean, onActiveChange: (b: boolean) => void }) {
+  const [metrics, setMetrics] = useState({ load: 42, fatigue: 18, focus: 89 });
+
   return (
     <div className="space-y-6">
       <div className={`glass-panel p-6 rounded-2xl flex items-center justify-between transition-colors ${isAsleep ? 'border-alert-red bg-alert-red/20 shadow-[0_0_50px_rgba(239,68,68,0.4)]' : ''}`}>
@@ -181,13 +183,13 @@ function DashboardContent({ mode, isAsleep, onSleepDetected, isActive, onActiveC
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <MetricCard title="Cognitive Load" value={isActive ? "42%" : "N/A"} trend={isActive ? "+5%" : ""} status="normal" />
-        <MetricCard title="Fatigue Probability" value={!isActive ? "N/A" : isAsleep ? "99%" : "18%"} trend={!isActive ? "" : isAsleep ? "+80%" : "-2%"} status={!isActive ? "normal" : isAsleep ? "critical" : "good"} />
-        <MetricCard title="Focus Score" value={!isActive ? "N/A" : isAsleep ? "12%" : "89%"} trend={!isActive ? "" : isAsleep ? "-77%" : "+12%"} status={!isActive ? "normal" : isAsleep ? "critical" : "excellent"} />
+        <MetricCard title="Cognitive Load" value={isActive ? `${metrics.load}%` : "N/A"} trend={isActive ? (metrics.load > 50 ? "+2%" : "-1%") : ""} status={isActive ? (metrics.load > 70 ? "critical" : "normal") : "normal"} />
+        <MetricCard title="Fatigue Probability" value={!isActive ? "N/A" : isAsleep ? "99%" : `${metrics.fatigue}%`} trend={!isActive ? "" : isAsleep ? "+80%" : (metrics.fatigue > 30 ? "+5%" : "-2%")} status={!isActive ? "normal" : isAsleep || metrics.fatigue > 60 ? "critical" : "good"} />
+        <MetricCard title="Focus Score" value={!isActive ? "N/A" : isAsleep ? "12%" : `${metrics.focus}%`} trend={!isActive ? "" : isAsleep ? "-77%" : (metrics.focus > 80 ? "+2%" : "-5%")} status={!isActive ? "normal" : isAsleep || metrics.focus < 50 ? "critical" : "excellent"} />
       </div>
       
       <div className="glass-panel p-6 rounded-2xl w-full">
-        <SleepDetector onSleepDetected={onSleepDetected} isActive={isActive} onActiveChange={onActiveChange} />
+        <SleepDetector onSleepDetected={onSleepDetected} isActive={isActive} onActiveChange={onActiveChange} onMetricsUpdate={setMetrics} />
       </div>
     </div>
   );
