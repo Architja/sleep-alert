@@ -26,9 +26,8 @@ const calculateEAR = (landmarks: any[], eyeIndices: number[]) => {
   return (vert1 + vert2) / (2.0 * horiz);
 };
 
-export default function SleepDetector({ onSleepDetected }: { onSleepDetected: (isAsleep: boolean) => void }) {
+export default function SleepDetector({ onSleepDetected, isActive, onActiveChange }: { onSleepDetected: (isAsleep: boolean) => void, isActive: boolean, onActiveChange: (b: boolean) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isActive, setIsActive] = useState(false);
   const [isAsleep, setIsAsleep] = useState(false);
   const isAsleepRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +75,7 @@ export default function SleepDetector({ onSleepDetected }: { onSleepDetected: (i
         videoRef.current.srcObject = stream;
         videoRef.current.play();
       }
-      setIsActive(true);
+      onActiveChange(true);
       setError(null);
       detectFrame();
     } catch (err: any) {
@@ -96,7 +95,7 @@ export default function SleepDetector({ onSleepDetected }: { onSleepDetected: (i
     if (requestRef.current) {
       cancelAnimationFrame(requestRef.current);
     }
-    setIsActive(false);
+    onActiveChange(false);
     setIsAsleep(false);
     isAsleepRef.current = false;
     onSleepDetected(false);

@@ -18,6 +18,7 @@ const TABS: { id: TabRole; label: string; icon: React.FC<any> }[] = [
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabRole>('driver');
   const [isAsleep, setIsAsleep] = useState(false);
+  const [isActive, setIsActive] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -40,13 +41,13 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'driver':
-        return <DashboardContent mode="Driver" isAsleep={isAsleep} onSleepDetected={setIsAsleep} />;
+        return <DashboardContent mode="Driver" isAsleep={isAsleep} onSleepDetected={setIsAsleep} isActive={isActive} onActiveChange={setIsActive} />;
       case 'study':
-        return <DashboardContent mode="Study" isAsleep={isAsleep} onSleepDetected={setIsAsleep} />;
+        return <DashboardContent mode="Study" isAsleep={isAsleep} onSleepDetected={setIsAsleep} isActive={isActive} onActiveChange={setIsActive} />;
       case 'work':
-        return <DashboardContent mode="Work" isAsleep={isAsleep} onSleepDetected={setIsAsleep} />;
+        return <DashboardContent mode="Work" isAsleep={isAsleep} onSleepDetected={setIsAsleep} isActive={isActive} onActiveChange={setIsActive} />;
       case 'gaming':
-        return <DashboardContent mode="Gaming" isAsleep={isAsleep} onSleepDetected={setIsAsleep} />;
+        return <DashboardContent mode="Gaming" isAsleep={isAsleep} onSleepDetected={setIsAsleep} isActive={isActive} onActiveChange={setIsActive} />;
       case 'history':
         return <div className="text-xl">History logs will appear here.</div>;
       case 'reports':
@@ -54,7 +55,7 @@ export default function App() {
       case 'settings':
         return <div className="text-xl">System settings configuration.</div>;
       default:
-        return <DashboardContent mode="Driver" isAsleep={isAsleep} onSleepDetected={setIsAsleep} />;
+        return <DashboardContent mode="Driver" isAsleep={isAsleep} onSleepDetected={setIsAsleep} isActive={isActive} onActiveChange={setIsActive} />;
     }
   };
 
@@ -136,7 +137,7 @@ export default function App() {
   );
 }
 
-function DashboardContent({ mode, isAsleep, onSleepDetected }: { mode: string, isAsleep: boolean, onSleepDetected: (b: boolean) => void }) {
+function DashboardContent({ mode, isAsleep, onSleepDetected, isActive, onActiveChange }: { mode: string, isAsleep: boolean, onSleepDetected: (b: boolean) => void, isActive: boolean, onActiveChange: (b: boolean) => void }) {
   return (
     <div className="space-y-6">
       <div className={`glass-panel p-6 rounded-2xl flex items-center justify-between transition-colors ${isAsleep ? 'border-alert-red bg-alert-red/20 shadow-[0_0_50px_rgba(239,68,68,0.4)]' : ''}`}>
@@ -150,13 +151,13 @@ function DashboardContent({ mode, isAsleep, onSleepDetected }: { mode: string, i
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <MetricCard title="Cognitive Load" value="42%" trend="+5%" status="normal" />
-        <MetricCard title="Fatigue Probability" value={isAsleep ? "99%" : "18%"} trend={isAsleep ? "+80%" : "-2%"} status={isAsleep ? "critical" : "good"} />
-        <MetricCard title="Focus Score" value={isAsleep ? "12%" : "89%"} trend={isAsleep ? "-77%" : "+12%"} status={isAsleep ? "critical" : "excellent"} />
+        <MetricCard title="Cognitive Load" value={isActive ? "42%" : "N/A"} trend={isActive ? "+5%" : ""} status="normal" />
+        <MetricCard title="Fatigue Probability" value={!isActive ? "N/A" : isAsleep ? "99%" : "18%"} trend={!isActive ? "" : isAsleep ? "+80%" : "-2%"} status={!isActive ? "normal" : isAsleep ? "critical" : "good"} />
+        <MetricCard title="Focus Score" value={!isActive ? "N/A" : isAsleep ? "12%" : "89%"} trend={!isActive ? "" : isAsleep ? "-77%" : "+12%"} status={!isActive ? "normal" : isAsleep ? "critical" : "excellent"} />
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SleepDetector onSleepDetected={onSleepDetected} />
+        <SleepDetector onSleepDetected={onSleepDetected} isActive={isActive} onActiveChange={onActiveChange} />
         
         <div className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center min-h-[300px]">
           <span className="text-holo-white/40 font-mono text-sm tracking-widest uppercase mb-4">[{mode} Telemetry Graph Placeholder]</span>
