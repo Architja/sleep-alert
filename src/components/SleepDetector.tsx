@@ -51,14 +51,15 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
         landmarkerRef.current = await FaceLandmarker.createFromOptions(vision, {
           baseOptions: {
             modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-            delegate: "GPU"
+            delegate: "CPU" // Use CPU for max compatibility
           },
           outputFaceBlendshapes: true,
           runningMode: "VIDEO",
           numFaces: 1
         });
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to load FaceLandmarker", err);
+        setError("AI Model failed to load: " + (err.message || String(err)));
       }
     }
     initModel();
@@ -119,9 +120,14 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
     if (video.currentTime !== lastVideoTimeRef.current && video.readyState >= 2) {
       lastVideoTimeRef.current = video.currentTime;
       
-      const results = landmarkerRef.current.detectForVideo(video, performance.now());
+      let results: any = null;
+      try {
+        results = landmarkerRef.current.detectForVideo(video, performance.now());
+      } catch(e) {
+        console.error("Detect error", e);
+      }
       
-      if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+      if (results && results.faceLandmarks && results.faceLandmarks.length > 0) {
         const landmarks = results.faceLandmarks[0];
         
         // Right eye indices (from user perspective)
@@ -140,7 +146,6 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
         const currentlySleeping = sleepFramesRef.current >= SLEEP_FRAMES_THRESHOLD;
         
         // Realistic dynamic metrics calculation based on actual eye openness
-        // avgEAR is typically ~0.30 when wide awake, and <0.20 when closed.
         const rawFatigue = Math.max(0, Math.min(100, (0.32 - avgEAR) * 800));
         const rawFocus = Math.max(0, Math.min(100, (avgEAR - 0.18) * 800));
         const rawLoad = Math.max(10, Math.min(90, 30 + (Math.abs(0.30 - avgEAR) * 300)));
@@ -196,7 +201,8 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
       }
     }
 
-    if (isActive) {
+    // Keep looping as long as the video has a source stream attached
+    if (video.srcObject) {
       requestRef.current = requestAnimationFrame(detectFrame);
     }
   };
