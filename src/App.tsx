@@ -64,7 +64,7 @@ export default function App() {
       <aside className="w-64 border-r border-cyan-glow/10 bg-neural-deep/40 backdrop-blur-md flex flex-col">
         <div className="p-6 border-b border-cyan-glow/10 flex items-center gap-3">
           <Cpu className="w-8 h-8 text-cyan-glow glow-cyan" />
-          <h1 className="font-display font-bold text-lg tracking-wider">NEURO<span className="text-cyan-glow">GUARD</span></h1>
+          <h1 className="font-display font-bold text-lg tracking-wider">SLEEP<span className="text-cyan-glow">ALERT</span></h1>
         </div>
 
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto" role="tablist">
