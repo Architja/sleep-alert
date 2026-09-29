@@ -30,6 +30,7 @@ export default function SleepDetector({ onSleepDetected }: { onSleepDetected: (i
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isActive, setIsActive] = useState(false);
   const [isAsleep, setIsAsleep] = useState(false);
+  const isAsleepRef = useRef(false);
   const [error, setError] = useState<string | null>(null);
   
   const landmarkerRef = useRef<FaceLandmarker | null>(null);
@@ -97,6 +98,7 @@ export default function SleepDetector({ onSleepDetected }: { onSleepDetected: (i
     }
     setIsActive(false);
     setIsAsleep(false);
+    isAsleepRef.current = false;
     onSleepDetected(false);
   };
 
@@ -129,14 +131,16 @@ export default function SleepDetector({ onSleepDetected }: { onSleepDetected: (i
 
         const currentlySleeping = sleepFramesRef.current >= SLEEP_FRAMES_THRESHOLD;
         
-        if (currentlySleeping !== isAsleep) {
+        if (currentlySleeping !== isAsleepRef.current) {
+          isAsleepRef.current = currentlySleeping;
           setIsAsleep(currentlySleeping);
           onSleepDetected(currentlySleeping);
         }
       } else {
         // No face detected, reset or maybe sound alarm? Let's just reset for now.
         sleepFramesRef.current = 0;
-        if (isAsleep) {
+        if (isAsleepRef.current) {
+          isAsleepRef.current = false;
           setIsAsleep(false);
           onSleepDetected(false);
         }
@@ -175,6 +179,8 @@ export default function SleepDetector({ onSleepDetected }: { onSleepDetected: (i
             ref={videoRef} 
             className="w-full h-full object-cover transform scale-x-[-1]"
             playsInline
+            autoPlay
+            muted
           />
         )}
         
