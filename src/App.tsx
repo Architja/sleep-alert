@@ -22,6 +22,20 @@ export default function App() {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
 
+  // Initialize audio context on any click to bypass browser autoplay restrictions
+  useEffect(() => {
+    const initAudio = () => {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      }
+      if (audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+    };
+    window.addEventListener('click', initAudio);
+    return () => window.removeEventListener('click', initAudio);
+  }, []);
+
   useEffect(() => {
     if (isAsleep) {
       if (!audioCtxRef.current) {
@@ -35,18 +49,18 @@ export default function App() {
       const osc = ctx.createOscillator();
       const gainNode = ctx.createGain();
       
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(800, ctx.currentTime);
-      osc.frequency.setValueAtTime(1200, ctx.currentTime + 0.1);
-      osc.frequency.setValueAtTime(800, ctx.currentTime + 0.2);
+      osc.type = 'sawtooth'; // Harsher, louder sound
+      osc.frequency.setValueAtTime(880, ctx.currentTime); // Higher pitch A5
+      osc.frequency.setValueAtTime(1318, ctx.currentTime + 0.1); // E6
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
       
       gainNode.gain.setValueAtTime(0, ctx.currentTime);
       gainNode.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.05);
       
       // Pulsing effect
       const lfo = ctx.createOscillator();
-      lfo.type = 'sine';
-      lfo.frequency.value = 5; // 5Hz pulse
+      lfo.type = 'square';
+      lfo.frequency.value = 8; // Faster 8Hz pulse
       
       const lfoGain = ctx.createGain();
       lfoGain.gain.value = 1;
