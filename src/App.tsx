@@ -168,7 +168,7 @@ export default function App() {
 }
 
 function DashboardContent({ mode, isAsleep, onSleepDetected, isActive, onActiveChange }: { mode: string, isAsleep: boolean, onSleepDetected: (b: boolean) => void, isActive: boolean, onActiveChange: (b: boolean) => void }) {
-  const [metrics, setMetrics] = useState({ load: 42, fatigue: 18, focus: 89 });
+  const [metrics, setMetrics] = useState({ load: 0, fatigue: 0, focus: 0 });
 
   return (
     <div className="space-y-6">

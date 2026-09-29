@@ -30,6 +30,7 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isAsleep, setIsAsleep] = useState(false);
   const isAsleepRef = useRef(false);
+  const smoothedMetricsRef = useRef({ load: 0, fatigue: 0, focus: 100 });
   const [error, setError] = useState<string | null>(null);
   
   const landmarkerRef = useRef<FaceLandmarker | null>(null);
@@ -138,14 +139,24 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
 
         const currentlySleeping = sleepFramesRef.current >= SLEEP_FRAMES_THRESHOLD;
         
-        // Dynamic metrics calculation
-        if (Math.random() > 0.8) { // Update metrics occasionally
-           const fatigueBase = Math.max(0, Math.min(100, Math.floor((0.30 - avgEAR) * 1000)));
-           const focusBase = Math.max(0, Math.min(100, Math.floor((avgEAR - 0.20) * 1000)));
+        // Realistic dynamic metrics calculation based on actual eye openness
+        // avgEAR is typically ~0.30 when wide awake, and <0.20 when closed.
+        const rawFatigue = Math.max(0, Math.min(100, (0.32 - avgEAR) * 800));
+        const rawFocus = Math.max(0, Math.min(100, (avgEAR - 0.18) * 800));
+        const rawLoad = Math.max(10, Math.min(90, 30 + (Math.abs(0.30 - avgEAR) * 300)));
+
+        // Update metrics smoothly
+        const prev = smoothedMetricsRef.current;
+        prev.load = prev.load * 0.95 + rawLoad * 0.05;
+        prev.fatigue = prev.fatigue * 0.95 + rawFatigue * 0.05;
+        prev.focus = prev.focus * 0.95 + rawFocus * 0.05;
+
+        // Only send to react state occasionally to save re-renders, or just send integer versions every few frames
+        if (sleepFramesRef.current % 10 === 0) {
            onMetricsUpdate?.({
-             load: 40 + Math.floor(Math.random() * 15),
-             fatigue: Math.min(99, fatigueBase + Math.floor(Math.random() * 5)),
-             focus: Math.min(99, focusBase + Math.floor(Math.random() * 5))
+             load: Math.round(prev.load),
+             fatigue: Math.round(prev.fatigue),
+             focus: Math.round(prev.focus)
            });
         }
 
