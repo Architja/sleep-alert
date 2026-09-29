@@ -182,14 +182,18 @@ function DashboardContent({ mode, isAsleep, onSleepDetected, isActive, onActiveC
         <ShieldAlert className={`w-12 h-12 ${isAsleep ? 'text-alert-red animate-ping' : 'text-purple-neon glow-purple'}`} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <MetricCard title="Cognitive Load" value={isActive ? `${metrics.load}%` : "N/A"} trend={isActive ? (metrics.load > 50 ? "+2%" : "-1%") : ""} status={isActive ? (metrics.load > 70 ? "critical" : "normal") : "normal"} />
-        <MetricCard title="Fatigue Probability" value={!isActive ? "N/A" : isAsleep ? "99%" : `${metrics.fatigue}%`} trend={!isActive ? "" : isAsleep ? "+80%" : (metrics.fatigue > 30 ? "+5%" : "-2%")} status={!isActive ? "normal" : isAsleep || metrics.fatigue > 60 ? "critical" : "good"} />
-        <MetricCard title="Focus Score" value={!isActive ? "N/A" : isAsleep ? "12%" : `${metrics.focus}%`} trend={!isActive ? "" : isAsleep ? "-77%" : (metrics.focus > 80 ? "+2%" : "-5%")} status={!isActive ? "normal" : isAsleep || metrics.focus < 50 ? "critical" : "excellent"} />
-      </div>
-      
-      <div className="glass-panel p-6 rounded-2xl w-full">
-        <SleepDetector onSleepDetected={onSleepDetected} isActive={isActive} onActiveChange={onActiveChange} onMetricsUpdate={setMetrics} />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Camera Section (Left, 2 columns) */}
+        <div className="lg:col-span-2 glass-panel p-6 rounded-2xl h-fit">
+          <SleepDetector onSleepDetected={onSleepDetected} isActive={isActive} onActiveChange={onActiveChange} onMetricsUpdate={setMetrics} />
+        </div>
+
+        {/* Metrics Section (Right, 1 column, stacked vertically) */}
+        <div className="flex flex-col gap-6">
+          <MetricCard title="Cognitive Load" value={isActive ? `${metrics.load}%` : "N/A"} trend={isActive ? (metrics.load > 50 ? "+2%" : "-1%") : ""} status={isActive ? (metrics.load > 70 ? "critical" : "normal") : "normal"} />
+          <MetricCard title="Fatigue Probability" value={!isActive ? "N/A" : isAsleep ? "99%" : `${metrics.fatigue}%`} trend={!isActive ? "" : isAsleep ? "+80%" : (metrics.fatigue > 30 ? "+5%" : "-2%")} status={!isActive ? "normal" : isAsleep || metrics.fatigue > 60 ? "critical" : "good"} />
+          <MetricCard title="Focus Score" value={!isActive ? "N/A" : isAsleep ? "12%" : `${metrics.focus}%`} trend={!isActive ? "" : isAsleep ? "-77%" : (metrics.focus > 80 ? "+2%" : "-5%")} status={!isActive ? "normal" : isAsleep || metrics.focus < 50 ? "critical" : "excellent"} />
+        </div>
       </div>
     </div>
   );
