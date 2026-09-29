@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Car, BookOpen, Briefcase, Gamepad2, History, BarChart3, Settings, ShieldAlert, Cpu } from 'lucide-react';
+import SleepDetector from './components/SleepDetector';
 
 type TabRole = 'driver' | 'study' | 'work' | 'gaming' | 'history' | 'reports' | 'settings';
 
@@ -16,17 +17,36 @@ const TABS: { id: TabRole; label: string; icon: React.FC<any> }[] = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabRole>('driver');
+  const [isAsleep, setIsAsleep] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // A loud, wake-up alarm sound
+    audioRef.current = new Audio('https://cdn.freesound.org/previews/415/415209_5121236-lq.mp3');
+    audioRef.current.loop = true;
+  }, []);
+
+  useEffect(() => {
+    if (isAsleep) {
+      audioRef.current?.play().catch(e => console.error("Audio play blocked", e));
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    }
+  }, [isAsleep]);
 
   const renderContent = () => {
     switch (activeTab) {
       case 'driver':
-        return <DashboardContent mode="Driver" />;
+        return <DashboardContent mode="Driver" isAsleep={isAsleep} onSleepDetected={setIsAsleep} />;
       case 'study':
-        return <DashboardContent mode="Study" />;
+        return <DashboardContent mode="Study" isAsleep={isAsleep} onSleepDetected={setIsAsleep} />;
       case 'work':
-        return <DashboardContent mode="Work" />;
+        return <DashboardContent mode="Work" isAsleep={isAsleep} onSleepDetected={setIsAsleep} />;
       case 'gaming':
-        return <DashboardContent mode="Gaming" />;
+        return <DashboardContent mode="Gaming" isAsleep={isAsleep} onSleepDetected={setIsAsleep} />;
       case 'history':
         return <div className="text-xl">History logs will appear here.</div>;
       case 'reports':
@@ -34,12 +54,12 @@ export default function App() {
       case 'settings':
         return <div className="text-xl">System settings configuration.</div>;
       default:
-        return <DashboardContent mode="Driver" />;
+        return <DashboardContent mode="Driver" isAsleep={isAsleep} onSleepDetected={setIsAsleep} />;
     }
   };
 
   return (
-    <div className="flex h-screen w-full bg-neural-void text-holo-white overflow-hidden font-body">
+    <div className={`flex h-screen w-full bg-neural-void text-holo-white overflow-hidden font-body transition-colors duration-500 ${isAsleep ? 'bg-alert-red/20' : ''}`}>
       {/* Sidebar */}
       <aside className="w-64 border-r border-cyan-glow/10 bg-neural-deep/40 backdrop-blur-md flex flex-col">
         <div className="p-6 border-b border-cyan-glow/10 flex items-center gap-3">
@@ -116,25 +136,37 @@ export default function App() {
   );
 }
 
-function DashboardContent({ mode }: { mode: string }) {
+function DashboardContent({ mode, isAsleep, onSleepDetected }: { mode: string, isAsleep: boolean, onSleepDetected: (b: boolean) => void }) {
   return (
     <div className="space-y-6">
-      <div className="glass-panel p-6 rounded-2xl flex items-center justify-between">
+      <div className={`glass-panel p-6 rounded-2xl flex items-center justify-between transition-colors ${isAsleep ? 'border-alert-red bg-alert-red/20 shadow-[0_0_50px_rgba(239,68,68,0.4)]' : ''}`}>
         <div>
-          <h3 className="text-xl font-display text-cyan-glow mb-2">{mode} Profile Activated</h3>
+          <h3 className={`text-xl font-display mb-2 ${isAsleep ? 'text-alert-red font-bold animate-pulse' : 'text-cyan-glow'}`}>
+            {isAsleep ? 'WARNING: SEVERE DROWSINESS DETECTED' : `${mode} Profile Activated`}
+          </h3>
           <p className="text-holo-white/70">Neural cognitive monitoring optimized for {mode.toLowerCase()} tasks.</p>
         </div>
-        <ShieldAlert className="w-12 h-12 text-purple-neon glow-purple" />
+        <ShieldAlert className={`w-12 h-12 ${isAsleep ? 'text-alert-red animate-ping' : 'text-purple-neon glow-purple'}`} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <MetricCard title="Cognitive Load" value="42%" trend="+5%" status="normal" />
-        <MetricCard title="Fatigue Probability" value="18%" trend="-2%" status="good" />
-        <MetricCard title="Focus Score" value="89%" trend="+12%" status="excellent" />
+        <MetricCard title="Fatigue Probability" value={isAsleep ? "99%" : "18%"} trend={isAsleep ? "+80%" : "-2%"} status={isAsleep ? "critical" : "good"} />
+        <MetricCard title="Focus Score" value={isAsleep ? "12%" : "89%"} trend={isAsleep ? "-77%" : "+12%"} status={isAsleep ? "critical" : "excellent"} />
       </div>
       
-      <div className="glass-panel p-6 rounded-2xl h-64 flex items-center justify-center">
-        <span className="text-holo-white/40 font-mono text-sm tracking-widest uppercase">[{mode} Telemetry Graph Placeholder]</span>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SleepDetector onSleepDetected={onSleepDetected} />
+        
+        <div className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center min-h-[300px]">
+          <span className="text-holo-white/40 font-mono text-sm tracking-widest uppercase mb-4">[{mode} Telemetry Graph Placeholder]</span>
+          <div className="w-full h-32 flex items-end justify-between px-4 opacity-50">
+             {/* Fake graph bars */}
+             {[40, 70, 45, 90, 65, 30, 80, 50].map((h, i) => (
+               <div key={i} className={`w-1/12 bg-gradient-to-t from-transparent to-cyan-glow ${isAsleep ? 'to-alert-red' : ''} rounded-t`} style={{ height: `${h}%` }}></div>
+             ))}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -142,11 +174,11 @@ function DashboardContent({ mode }: { mode: string }) {
 
 function MetricCard({ title, value, trend, status }: { title: string, value: string, trend: string, status: string }) {
   return (
-    <div className={`glass-panel p-6 rounded-2xl border-t-2 ${status === 'excellent' ? 'border-t-purple-neon' : status === 'good' ? 'border-t-cyan-glow' : 'border-t-alert-amber'}`}>
+    <div className={`glass-panel p-6 rounded-2xl border-t-2 ${status === 'critical' ? 'border-t-alert-red shadow-[inset_0_0_20px_rgba(239,68,68,0.2)]' : status === 'excellent' ? 'border-t-purple-neon' : status === 'good' ? 'border-t-cyan-glow' : 'border-t-alert-amber'}`}>
       <h4 className="text-sm font-mono text-holo-white/60 uppercase tracking-wider mb-4">{title}</h4>
       <div className="flex items-end gap-4">
-        <span className="text-4xl font-display font-bold text-gradient-cyan">{value}</span>
-        <span className={`text-sm font-mono mb-1 ${trend.startsWith('+') ? 'text-cyan-glow' : 'text-purple-neon'}`}>
+        <span className={`text-4xl font-display font-bold ${status === 'critical' ? 'text-alert-red' : 'text-gradient-cyan'}`}>{value}</span>
+        <span className={`text-sm font-mono mb-1 ${trend.startsWith('+') ? (status === 'critical' ? 'text-alert-red' : 'text-cyan-glow') : (status === 'critical' ? 'text-alert-red' : 'text-purple-neon')}`}>
           {trend}
         </span>
       </div>
