@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Car, BookOpen, Briefcase, Gamepad2, History, BarChart3, Settings, ShieldAlert, Cpu } from 'lucide-react';
+import { Car, BookOpen, Briefcase, Gamepad2, History, BarChart3, ShieldAlert, Cpu } from 'lucide-react';
 import SleepDetector from './components/SleepDetector';
 
-type TabRole = 'driver' | 'study' | 'work' | 'gaming' | 'history' | 'reports' | 'settings';
+type TabRole = 'driver' | 'study' | 'work' | 'gaming' | 'history' | 'reports';
 
 const TABS: { id: TabRole; label: string; icon: React.FC<any> }[] = [
   { id: 'driver', label: 'Driver', icon: Car },
@@ -11,8 +11,7 @@ const TABS: { id: TabRole; label: string; icon: React.FC<any> }[] = [
   { id: 'work', label: 'Work', icon: Briefcase },
   { id: 'gaming', label: 'Gaming', icon: Gamepad2 },
   { id: 'history', label: 'History', icon: History },
-  { id: 'reports', label: 'Reports', icon: BarChart3 },
-  { id: 'settings', label: 'Settings', icon: Settings },
+  { id: 'reports', label: 'Analytics', icon: BarChart3 },
 ];
 
 export default function App() {
@@ -21,6 +20,8 @@ export default function App() {
   const [isActive, setIsActive] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const [sleepHistory, setSleepHistory] = useState<{ time: Date, duration: number, mode: string }[]>([]);
+  const sleepStartTimeRef = useRef<number | null>(null);
 
   // Initialize audio context on any click to bypass browser autoplay restrictions
   useEffect(() => {
@@ -38,6 +39,10 @@ export default function App() {
 
   useEffect(() => {
     if (isAsleep) {
+      if (!sleepStartTimeRef.current) {
+        sleepStartTimeRef.current = Date.now();
+      }
+
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
@@ -74,13 +79,21 @@ export default function App() {
       
       oscillatorRef.current = osc;
     } else {
+      if (sleepStartTimeRef.current) {
+        const duration = (Date.now() - sleepStartTimeRef.current) / 1000;
+        if (duration > 0.5) { // Only log significant events
+          setSleepHistory(prev => [{ time: new Date(), duration, mode: activeTab }, ...prev].slice(0, 50));
+        }
+        sleepStartTimeRef.current = null;
+      }
+
       if (oscillatorRef.current) {
         oscillatorRef.current.stop();
         oscillatorRef.current.disconnect();
         oscillatorRef.current = null;
       }
     }
-  }, [isAsleep]);
+  }, [isAsleep, activeTab]);
 
   const renderContent = () => {
     switch (activeTab) {
@@ -93,11 +106,9 @@ export default function App() {
       case 'gaming':
         return <DashboardContent mode="Gaming" isAsleep={isAsleep} onSleepDetected={setIsAsleep} isActive={isActive} onActiveChange={setIsActive} />;
       case 'history':
-        return <div className="text-xl">History logs will appear here.</div>;
+        return <HistoryContent history={sleepHistory} />;
       case 'reports':
-        return <div className="text-xl">Analytics and Reports will appear here.</div>;
-      case 'settings':
-        return <div className="text-xl">System settings configuration.</div>;
+        return <AnalyticsContent history={sleepHistory} />;
       default:
         return <DashboardContent mode="Driver" isAsleep={isAsleep} onSleepDetected={setIsAsleep} isActive={isActive} onActiveChange={setIsActive} />;
     }
@@ -177,6 +188,63 @@ export default function App() {
           </AnimatePresence>
         </div>
       </main>
+    </div>
+  );
+}
+
+function HistoryContent({ history }: { history: { time: Date, duration: number, mode: string }[] }) {
+  return (
+    <div className="space-y-6">
+      <div className="glass-panel p-6 rounded-2xl">
+        <h3 className="text-xl font-display mb-2 text-cyan-glow">Detection History</h3>
+        <p className="text-holo-white/70 mb-6">Log of severe drowsiness events detected across all sessions.</p>
+        
+        {history.length === 0 ? (
+          <div className="text-center py-12 text-holo-white/40 font-mono text-sm">No drowsiness events recorded yet. Stay focused!</div>
+        ) : (
+          <div className="space-y-4">
+            {history.map((entry, i) => (
+              <div key={i} className="flex items-center justify-between p-4 bg-neural-void/50 rounded-xl border border-white/5">
+                <div className="flex items-center gap-4">
+                  <div className="w-2 h-2 rounded-full bg-alert-red animate-pulse" />
+                  <div>
+                    <div className="font-mono text-sm text-holo-white">{entry.time.toLocaleTimeString()}</div>
+                    <div className="text-xs text-holo-white/50">{entry.time.toLocaleDateString()}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-mono text-sm text-alert-red">{entry.duration.toFixed(1)}s Duration</div>
+                  <div className="text-xs font-mono uppercase tracking-widest text-holo-white/50">{entry.mode} Mode</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsContent({ history }: { history: { time: Date, duration: number, mode: string }[] }) {
+  const totalEvents = history.length;
+  const avgDuration = totalEvents ? history.reduce((a, b) => a + b.duration, 0) / totalEvents : 0;
+  
+  return (
+    <div className="space-y-6">
+      <div className="glass-panel p-6 rounded-2xl mb-6">
+        <h3 className="text-xl font-display mb-2 text-purple-neon">Neural Analytics</h3>
+        <p className="text-holo-white/70">Aggregated cognitive performance data.</p>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <MetricCard title="Total Sleep Events" value={totalEvents.toString()} trend={totalEvents > 5 ? "+Critical" : ""} status={totalEvents > 0 ? "critical" : "excellent"} />
+        <MetricCard title="Avg Micro-Sleep" value={`${avgDuration.toFixed(1)}s`} trend="" status={avgDuration > 2 ? "critical" : "normal"} />
+      </div>
+      
+      <div className="glass-panel p-6 rounded-2xl flex flex-col items-center justify-center min-h-[300px]">
+        <BarChart3 className="w-16 h-16 text-purple-neon/20 mb-4" />
+        <p className="text-holo-white/40 font-mono text-sm">Advanced visualization metrics active. Awaiting more data...</p>
+      </div>
     </div>
   );
 }
