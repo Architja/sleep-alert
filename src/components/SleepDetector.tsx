@@ -151,8 +151,11 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
         prev.fatigue = prev.fatigue * 0.95 + rawFatigue * 0.05;
         prev.focus = prev.focus * 0.95 + rawFocus * 0.05;
 
-        // Only send to react state occasionally to save re-renders, or just send integer versions every few frames
-        if (sleepFramesRef.current % 10 === 0) {
+        // Use a counter for metrics update to avoid blasting React state
+        if (!video.dataset.frameCount) video.dataset.frameCount = "0";
+        video.dataset.frameCount = (parseInt(video.dataset.frameCount) + 1).toString();
+        
+        if (parseInt(video.dataset.frameCount) % 10 === 0) {
            onMetricsUpdate?.({
              load: Math.round(prev.load),
              fatigue: Math.round(prev.fatigue),
@@ -166,10 +169,23 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
           onSleepDetected(currentlySleeping);
         }
       } else {
-        // No face detected, reset or maybe sound alarm? Let's just reset for now.
+        // No face detected - fade metrics to 0 slowly
+        const prev = smoothedMetricsRef.current;
+        prev.load = prev.load * 0.95;
+        prev.fatigue = prev.fatigue * 0.95;
+        prev.focus = prev.focus * 0.95;
+        
         sleepFramesRef.current = 0;
-        if (Math.random() > 0.8) {
-           onMetricsUpdate?.({ load: 0, fatigue: 0, focus: 0 });
+        
+        if (!video.dataset.frameCount) video.dataset.frameCount = "0";
+        video.dataset.frameCount = (parseInt(video.dataset.frameCount) + 1).toString();
+        
+        if (parseInt(video.dataset.frameCount) % 10 === 0) {
+           onMetricsUpdate?.({
+             load: Math.round(prev.load),
+             fatigue: Math.round(prev.fatigue),
+             focus: Math.round(prev.focus)
+           });
         }
         
         if (isAsleepRef.current) {
