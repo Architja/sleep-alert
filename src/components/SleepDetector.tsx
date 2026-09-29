@@ -102,7 +102,15 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
   };
 
   const detectFrame = async () => {
-    if (!videoRef.current || !landmarkerRef.current) return;
+    if (!videoRef.current) return;
+
+    if (!landmarkerRef.current) {
+      // Model not loaded yet, keep looping
+      if (isActive || videoRef.current.srcObject) {
+        requestRef.current = requestAnimationFrame(detectFrame);
+      }
+      return;
+    }
 
     const video = videoRef.current;
     
@@ -164,24 +172,26 @@ export default function SleepDetector({ onSleepDetected, isActive, onActiveChang
       </div>
 
       <div className="relative w-full aspect-video bg-neural-deep rounded-lg overflow-hidden border border-white/5 flex items-center justify-center">
-        {error ? (
-          <div className="text-alert-red text-sm flex items-center gap-2">
+        {error && (
+          <div className="absolute text-alert-red text-sm flex items-center gap-2 z-20">
             <AlertTriangle className="w-4 h-4" /> {error}
           </div>
-        ) : !isActive ? (
-          <div className="text-holo-white/40 flex flex-col items-center gap-2">
+        )}
+        
+        {!isActive && !error && (
+          <div className="absolute text-holo-white/40 flex flex-col items-center gap-2 z-20">
             <CameraOff className="w-8 h-8" />
             <span className="text-xs font-mono uppercase tracking-widest">Camera Offline</span>
           </div>
-        ) : (
-          <video 
-            ref={videoRef} 
-            className="w-full h-full object-cover transform scale-x-[-1]"
-            playsInline
-            autoPlay
-            muted
-          />
         )}
+        
+        <video 
+          ref={videoRef} 
+          className={`w-full h-full object-cover transform scale-x-[-1] ${!isActive ? 'opacity-0' : 'opacity-100'}`}
+          playsInline
+          autoPlay
+          muted
+        />
         
         {isActive && !error && (
           <div className="absolute top-2 left-2 flex items-center gap-2 bg-neural-void/80 px-2 py-1 rounded backdrop-blur-md">
